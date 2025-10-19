@@ -39,7 +39,7 @@ app.get("/proxy", async (req, res) => {
     const contentType = response.headers.get("content-type") || "text/html";
     res.set("Content-Type", contentType);
 
-    // Stream response directly
+    // Send fetched content
     const body = await response.text();
     res.send(body);
 
