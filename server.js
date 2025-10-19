@@ -5,41 +5,47 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 
+// Homepage with form
 app.get("/", (req, res) => {
   res.send(`
-    <h2>🐙 GitHub Proxy</h2>
+    <h2>🌐 Generic Web Proxy</h2>
     <form method="GET" action="/proxy">
-      <input type="text" name="url" placeholder="https://github.com/user/repo" style="width:300px" required>
+      <input type="text" name="url" placeholder="https://example.com" style="width:400px" required>
       <button type="submit">Go</button>
     </form>
-    <p>Example: https://github.com/vercel/next.js</p>
   `);
 });
 
-// Proxy GitHub page or raw content
+// Proxy route
 app.get("/proxy", async (req, res) => {
   let targetUrl = req.query.url;
 
   if (!targetUrl) return res.status(400).send("Missing URL");
 
-  // Force GitHub raw content if possible
-  if (targetUrl.includes("github.com") && !targetUrl.includes("raw.githubusercontent.com")) {
-    targetUrl = targetUrl.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/");
+  // Add http:// if missing
+  if (!/^https?:\/\//i.test(targetUrl)) {
+    targetUrl = "http://" + targetUrl;
   }
 
   try {
     const response = await fetch(targetUrl, {
-      headers: { "User-Agent": "GitHub-Proxy" }
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Accept": "*/*",
+      }
     });
 
-    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
-    const type = response.headers.get("content-type") || "text/plain";
-    res.set("content-type", type);
-    const data = await response.text();
-    res.send(data);
+    // Forward content type
+    const contentType = response.headers.get("content-type") || "text/html";
+    res.set("Content-Type", contentType);
+
+    // Stream response directly
+    const body = await response.text();
+    res.send(body);
+
   } catch (err) {
-    res.status(500).send("❌ Error fetching GitHub content: " + err.message);
+    res.status(500).send("❌ Error fetching URL: " + err.message);
   }
 });
 
-app.listen(PORT, () => console.log(`✅ GitHub proxy running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ Proxy running at http://localhost:${PORT}`));
